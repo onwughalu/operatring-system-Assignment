@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+#define NUM_THREADS 8
+#define MAX_RESOURCES 3
+
+sem_t resource_semaphore;
+
+void* use_resource(void* arg) {
+    long id = (long)arg;
+
+    printf("Thread %ld is waiting for a resource...\n", id);
+    sem_wait(&resource_semaphore); // Acquire resource (decrements counter)
+
+    printf("-> Thread %ld has ACQUIRED a resource. Resources remaining.\n", id);
+    
+    // Simulate working with the resource
+    sleep(2); 
+
+    printf("<- Thread %ld is RELEASING the resource.\n", id);
+    sem_post(&resource_semaphore); // Release resource (increments counter)
+
+    return NULL;
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+
+    // Initialize the semaphore with the limit of resources (3)
+    sem_init(&resource_semaphore, 0, MAX_RESOURCES);
+
+    printf("Initializing resource pool with %d available resources.\n", MAX_RESOURCES);
+
+    for (long i = 0; i < NUM_THREADS; i++) {
+        pthread_create(&threads[i], NULL, use_resource, (void*)i);
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    sem_destroy(&resource_semaphore);
+    return 0;
+}
